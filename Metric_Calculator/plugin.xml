@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+<!-- plugin.xml file written by dynaTrace Client 6.3.2 -->
+<plugin>
+  <extension point="com.dynatrace.diagnostics.pdk.pluginconfig" id="com.dynatrace.metric.calculator" name="Metric Calculator">
+    <information>
+      <category value="" />
+      <displayname value="Metric Calculator" />
+      <description value="My Plugin description ..." />
+    </information>
+    <configuration>
+      <property key="protocol" label="Protocol" type="list" description="My property description ..." default="HTTP">
+        <list>
+          <item value="HTTP" />
+          <item value="HTTPS" />
+        </list>
+      </property>
+      <property key="httpPort" label="Port" type="long" description="My property description ..." default="8020" />
+      <property key="matrixURL" label="Matrix URL" type="string" description="My property description ..." default="" multiline="false" />
+      <property key="username" label="Username" type="string" description="My property description ..." default="default" multiline="false" />
+      <property key="password" label="Password" type="password" description="My property description ..." default="" />
+      <property key="operation" label="Operation" type="list" description="My property description ..." default="Add">
+        <list>
+          <item value="Add" />
+          <item value="Sub" />
+          <item value="Mul" />
+          <item value="Div" />
+          <item value="Mod" />
+        </list>
+      </property>
+      <property key="aggergation" label="Aggergation" type="list" description="My property description ..." default="Avg">
+        <list>
+          <item value="Avg" />
+          <item value="Min" />
+          <item value="Max" />
+          <item value="Count" />
+          <item value="Sum" />
+        </list>
+      </property>
+    </configuration>
+  </extension>
+  <extension point="com.dynatrace.diagnostics.pdk.monitor" id="com.dynatrace.metric.calculator.monitor" name="Metric Calculator Monitor">
+    <plugin configid="com.dynatrace.metric.calculator" class="com.dynatrace.metric.calculator.Engine" />
+  </extension>
+  <extension point="com.dynatrace.diagnostics.pdk.monitormetricgroup" id="com.dynatrace.metric.calculator.monitor.results" name="Results">
+    <metricgroup monitorid="com.dynatrace.metric.calculator.monitor">
+      <metric defaultrate="purepath" name="Calc Results" unit="number" description="My metric description ...">
+        <property key="calcResults" value="calcResults" optional="false" />
+      </metric>
+    </metricgroup>
+  </extension>
+</plugin>
