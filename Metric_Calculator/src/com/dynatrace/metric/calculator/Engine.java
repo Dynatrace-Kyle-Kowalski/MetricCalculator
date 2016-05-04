@@ -119,26 +119,98 @@ public class Engine implements Monitor {
 	 */
 	@Override
 	public Status execute(MonitorEnvironment env) throws Exception {
-		/* 
-		// this sample which shows how to book to (dynamic) monitor measures
+		
+		log.finer("Entering execute method");
+		
+		log.finer("Entering URL Setup");
+		matrixURL = new URL(urlprotocol, env.getHost().getAddress(), urlport, dynaTraceURL);		
+		
+		log.info("Executing URL: " + matrixURL.toString());
+		log.finer("Executing URL: " + matrixURL.toString());
+		
+		try {
+			
+			log.finer("Entering username/password setup");
+			String userpass = username + ":" + password;
+			String basicAuth = "Basic " + javax.xml.bind.DatatypeConverter.printBase64Binary(userpass.getBytes());
+		
+			disableCertificateValidation();
+				
+			//URL to grab XML file
+			log.finer("Entering XML file grab");
+			connection = matrixURL.openConnection();
+			connection.setRequestProperty("Authorization", basicAuth);
+			connection.setConnectTimeout(50000);
 
-		Collection<MonitorMeasure> monitorMeasures = env.getMonitorMeasures("mymetricgroup", "mymetric");
-		for (MonitorMeasure subscribedMonitorMeasure : monitorMeasures) {
+			InputStream responseIS = connection.getInputStream();	
+			DocumentBuilderFactory xmlFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder docBuilder = xmlFactory.newDocumentBuilder();
+			Document xmlDoc = docBuilder.parse(responseIS);
+			XPathFactory xpathFact = XPathFactory.newInstance();
+			XPath xpath = xpathFact.newXPath();
+			
+				
+			String xpathQuery = "/dashboardreport/data/dynamicmeasurematrixdashlet/measures/measure[@" + aggergation + "]";
+			NodeList nl = (NodeList) xpath.evaluate(xpathQuery,xmlDoc,XPathConstants.NODESET);
+			
+			//if nl is empty do not continue
+			if( nl != null && nl.getLength() >0){
+				throw new Exception();
+			}
+			
+			//Java 6 doesn't support a string in the switch statement
+			log.finer("Entering splitting switch statement");
+			int splitSwitch = 0;
+			if (operation.equals("Add"))
+				splitSwitch = 1;
+			if (operation.equals("Sub"))
+				splitSwitch = 2;
+			if (operation.equals("Multi"))
+				splitSwitch = 3;
+			log.finer("splitSwitch: " + splitSwitch);
+			
+			
+			switch(splitSwitch){
+				case 1: //Add
+					for (int i = 0; i < nl.getLength();i++){
+						//TODO Parse XML File to gather values from element
+						double tempValue = Double.parseDouble(nl.item(i).getAttributes().getNamedItem(aggergation).toString());
+						this.results = this.results + tempValue;
+					}
+					break;
+				case 2: //Sub
+					for (int i = 0; i < nl.getLength();i++){
+						//TODO Parse XML File to gather values from element
+						double tempValue = Double.parseDouble(nl.item(i).getAttributes().getNamedItem(aggergation).toString());
+						this.results = tempValue - this.results;
+					}
+					break;
+				case 3: //Multi
+					for (int i = 0; i < nl.getLength();i++){
+						double tempValue = Double.parseDouble(nl.item(i).getAttributes().getNamedItem(aggergation).toString());
+						this.results = this.results * tempValue;
+					}
+					break;
+				default:
+					//There should always be a value this is in case things go poorly somehow
+					throw new Exception();
+			}
 
-			//this will book to the monitor measure
-			subscribedMonitorMeasure.setValue(42);
+		} catch (ClientProtocolException e) {
+			log.info("ClientProtocolException: " + e);
+			return new Status(Status.StatusCode.ErrorInternal);
 
-			//for this subscribed measure we want to create a dynamic measure
-			MonitorMeasure dynamicMeasure = env.createDynamicMeasure(subscribedMonitorMeasure, "Queue Name", "Queue 1");
-			dynamicMeasure.setValue(24);
+		} catch (IOException e) {
+			log.info("IOException: " + e);
+			return new Status(Status.StatusCode.ErrorInternal);
 
-			//now we create another one for a different queue name
-			dynamicMeasure = env.createDynamicMeasure(subscribedMonitorMeasure, "Queue Name", "Queue 2");
-			dynamicMeasure.setValue(32);
-
-
+		} catch (Exception e){
+			log.info("Exception: " + e);
+			return new Status(Status.StatusCode.ErrorInternal);
 		}
-		*/
+		
+		log.finer("Exiting execute method");
+		log.finer("*****END PLUGIN LOGGING*****");
 		return new Status(Status.StatusCode.Success);
 	}
 
@@ -182,5 +254,36 @@ public class Engine implements Monitor {
 	 */	@Override
 	public void teardown(MonitorEnvironment env) throws Exception {
 		// TODO
+	}
+	 
+	 
+	public static void disableCertificateValidation() {
+		
+		log.finer("Entering disableCertificateValidation method");  
+		
+		// Create a trust manager that does not validate certificate chains
+		  TrustManager[] trustAllCerts = new TrustManager[] { 
+		    new X509TrustManager() {
+		      public X509Certificate[] getAcceptedIssuers() { 
+		        return new X509Certificate[0]; 
+		      }
+		      public void checkClientTrusted(X509Certificate[] certs, String authType) {}
+		      public void checkServerTrusted(X509Certificate[] certs, String authType) {}
+		  }};
+
+		  // Ignore differences between given hostname and certificate hostname
+		  HostnameVerifier hv = new HostnameVerifier() {
+		    public boolean verify(String hostname, SSLSession session) { return true; }
+		  };
+
+		  // Install the all-trusting trust manager
+		  try {
+		    SSLContext sc = SSLContext.getInstance("SSL");
+		    sc.init(null, trustAllCerts, new SecureRandom());
+		    HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+		    HttpsURLConnection.setDefaultHostnameVerifier(hv);
+		  } catch (Exception e) {}
+		  
+		  log.finer("Leaving disableCertificateValidation method");
 	}
 }
