@@ -9,6 +9,31 @@ package com.dynatrace.metric.calculator;
 
 import com.dynatrace.diagnostics.pdk.*;
 import java.util.logging.Logger;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.MalformedURLException;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Logger;
+
+import javax.net.ssl.*;
+
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+
+import org.apache.http.client.ClientProtocolException;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
 
 
 public class Engine implements Monitor {
@@ -16,31 +41,57 @@ public class Engine implements Monitor {
 	private static final Logger log = Logger.getLogger(Engine.class.getName());
 
 
-	/**
-	 * Initializes the Plugin. This method is called in the following cases:
-	 * <ul>
-	 * <li>before <tt>execute</tt> is called the first time for this
-	 * scheduled Plugin</li>
-	 * <li>before the next <tt>execute</tt> if <tt>teardown</tt> was called
-	 * after the last execution</li>
-	 * </ul>
-	 * <p>
-	 * If the returned status is <tt>null</tt> or the status code is a
-	 * non-success code then {@link Plugin#teardown() teardown()} will be called
-	 * next.
-	 * <p>
-	 * Resources like sockets or files can be opened in this method.
-	 * @param env
-	 *            the configured <tt>MonitorEnvironment</tt> for this Plugin;
-	 *            contains subscribed measures, but <b>measurements will be
-	 *            discarded</b>
-	 * @see Plugin#teardown()
-	 * @return a <tt>Status</tt> object that describes the result of the
-	 *         method call
-	 */
+	// measure constants
+	private static final String METRIC_GROUP = "Results";
+	private static final String CALC_RESULTS = "calcResults";
+
+	private Collection<MonitorMeasure>  measures  = null;
+	private MonitorMeasure dynamicMeasure;
+	
+	private double results;
+
+	private URLConnection connection;
+	private URL matrixURL;
+	
+	private String urlprotocol;
+	private int urlport;
+	private String dynaTraceURL;
+	private String username;
+	private String password;
+	
+	private String operation;
+	private String aggergation;
+
 	@Override
 	public Status setup(MonitorEnvironment env) throws Exception {
-		// TODO
+		
+		log.finer("*****BEGIN PLUGIN LOGGING*****");
+		log.finer("Entering setup method");
+		log.finer("Entering variables from plugin.xml");
+		
+		urlprotocol = env.getConfigString("protocol");
+		urlport = env.getConfigLong("httpPort").intValue();
+		
+		dynaTraceURL = env.getConfigString("agentURL");
+		dynaTraceURL = dynaTraceURL.replaceAll(" ", "%20");
+		if (!dynaTraceURL.startsWith("/"))
+			dynaTraceURL = "/" + dynaTraceURL;
+		
+		username = env.getConfigString("username");
+		password = env.getConfigPassword("password");
+				
+		operation = env.getConfigString("operation");
+		aggergation = env.getConfigString("aggergation");
+		
+		log.finer("URL Protocol: " + this.urlprotocol);
+		log.finer("URL Port: " + this.urlport);
+		log.finer("dT URL: " + this.dynaTraceURL);
+		log.finer("Username: " + this.username);
+		log.finer("Operation: " + this.operation);
+		log.finer("Aggergation: " + this.aggergation);
+		
+		log.finer("Exiting setup method");
+			
 		return new Status(Status.StatusCode.Success);
 	}
 
