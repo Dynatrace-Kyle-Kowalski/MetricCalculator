@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
-import java.net.MalformedURLException;
 import java.util.Collection;
 
 
@@ -26,7 +25,6 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
 import org.apache.http.client.ClientProtocolException;
@@ -41,7 +39,7 @@ public class Engine implements Monitor {
 
 	// measure constants
 	private static final String METRIC_GROUP = "Results";
-	private static final String CALC_RESULTS = "number";
+	private static final String CALC_RESULTS = "Calc Results";
 
 	private Collection<MonitorMeasure>  measures  = null;
 	
@@ -80,6 +78,7 @@ public class Engine implements Monitor {
 				
 		this.operation = env.getConfigString("operation");
 		this.aggergation = env.getConfigString("aggergation");
+		this.aggergation = this.aggergation.toLowerCase();
 		
 		log.finer("URL Protocol: " + this.urlprotocol);
 		log.finer("URL Port: " + this.urlport);
@@ -140,6 +139,7 @@ public class Engine implements Monitor {
 			this.connection.setRequestProperty("Authorization", basicAuth);
 			this.connection.setConnectTimeout(50000);
 
+			//Build out XML Document
 			InputStream responseIS = this.connection.getInputStream();	
 			DocumentBuilderFactory xmlFactory = DocumentBuilderFactory.newInstance();
 			DocumentBuilder docBuilder = xmlFactory.newDocumentBuilder();
@@ -147,15 +147,10 @@ public class Engine implements Monitor {
 			XPathFactory xpathFact = XPathFactory.newInstance();
 			XPath xpath = xpathFact.newXPath();
 			
-				
+			//Create XPath Query to build out list of nodes to be evaluated on	
 			String xpathQuery = "/dashboardreport/data/dynamicmeasurematrixdashlet/measures/measure";
 			NodeList nl = (NodeList) xpath.evaluate(xpathQuery,xmlDoc,XPathConstants.NODESET);
-			
-			/*/if nl is empty do not continue
-			if( nl != null && nl.getLength() >0){
-				throw new Exception();
-			}*/
-			
+						
 			//Java 6 doesn't support a string in the switch statement
 			log.finer("Entering splitting switch statement");
 			int splitSwitch = 0;
@@ -163,48 +158,40 @@ public class Engine implements Monitor {
 				splitSwitch = 1;
 			if (operation.equals("Sub"))
 				splitSwitch = 2;
-			if (operation.equals("Multi"))
+			if (operation.equals("Mul"))
 				splitSwitch = 3;
 			log.finer("splitSwitch: " + splitSwitch);
 			
-			
+			//Switch to which operation is selected to use
 			switch(splitSwitch){
 				case 1: //Add
-					for (int i = 0; i < nl.getLength();i++){
-						 String tempString = nl.item(i).getAttributes().getNamedItem(aggergation).toString();
-						 tempString = tempString.replace(aggergation + "=", "");
-						 tempString = tempString.replace("\"", "");
-						 log.finer("Number Value extracted: " + tempString);
-						 double tempValue = Double.parseDouble(tempString);
-						 this.results = this.results + tempValue;
-					}
+					//Loop through nodes to get all values then perform addition on values cumulatively
+					for (int i = 0; i < nl.getLength();i++){ 
+							this.results = this.results + xmlHelper(nl,i);
+						}
 					break;
 				case 2: //Sub
+					//Loop through nodes to get all values then perform subtraction on values cumulatively
 					for (int i = 0; i < nl.getLength();i++){
-						 String tempString = nl.item(i).getAttributes().getNamedItem(aggergation).toString();
-						 tempString = tempString.replace(aggergation + "=", "");
-						 tempString = tempString.replace("\"", "");
-						 log.finer("Number Value extracted: " + tempString);
-						 double tempValue = Double.parseDouble(tempString);
-						 this.results = tempValue - this.results;
+						this.results = xmlHelper(nl,i) - this.results;
 					}
 					break;
 				case 3: //Multi
+					//Loop through nodes to get all values then perform multiplication on values cumulatively
 					for (int i = 0; i < nl.getLength();i++){
-						 String tempString = nl.item(i).getAttributes().getNamedItem(aggergation).toString();
-						 tempString = tempString.replace(aggergation + "=", "");
-						 tempString = tempString.replace("\"", "");
-						 log.finer("Number Value extracted: " + tempString);
-						 double tempValue = Double.parseDouble(tempString);
-						 this.results = this.results * tempValue;
+						this.results = this.results + xmlHelper(nl,i);
 					}
 					break;
 				default:
-					//There should always be a value this is in case things go poorly somehow
+					//There should always be a value this is in case switch helper up top does not match plugin
+					//properties exactly
 					throw new Exception();
 			}
 			
+			//Add value to be reported to metric group for plugin
 			if ((measures = env.getMonitorMeasures(METRIC_GROUP, CALC_RESULTS)) != null) {
+				log.finer(measures.toString());
+				log.finer("Results to publish" +this.results);
 				for (MonitorMeasure measure : measures)
 					measure.setValue(this.results);
 			}
@@ -227,49 +214,33 @@ public class Engine implements Monitor {
 		return new Status(Status.StatusCode.Success);
 	}
 
-	/**
-	 * Shuts the Plugin down and frees resources. This method is called in the
-	 * following cases:
-	 * <ul>
-	 * <li>the <tt>setup</tt> method failed</li>
-	 * <li>the Plugin configuration has changed</li>
-	 * <li>the execution duration of the Plugin exceeded the schedule timeout</li>
-	 * <li>the schedule associated with this Plugin was removed</li>
-	 * </ul>
-	 *
-	 * <p>
-	 * The Plugin methods <tt>setup</tt>, <tt>execute</tt> and
-	 * <tt>teardown</tt> are called on different threads, but they are called
-	 * sequentially. This means that the execution of these methods does not
-	 * overlap, they are executed one after the other.
-	 *
-	 * <p>
-	 * Examples:
-	 * <ul>
-	 * <li><tt>setup</tt> (failed) -&gt; <tt>teardown</tt></li>
-	 * <li><tt>execute</tt> starts, configuration changes, <tt>execute</tt>
-	 * ends -&gt; <tt>teardown</tt><br>
-	 * on next schedule interval: <tt>setup</tt> -&gt; <tt>execute</tt> ...</li>
-	 * <li><tt>execute</tt> starts, execution duration timeout,
-	 * <tt>execute</tt> stops -&gt; <tt>teardown</tt></li>
-	 * <li><tt>execute</tt> starts, <tt>execute</tt> ends, schedule is
-	 * removed -&gt; <tt>teardown</tt></li>
-	 * </ul>
-	 * Failed means that either an unhandled exception is thrown or the status
-	 * returned by the method contains a non-success code.
-	 *
-	 *
-	 * <p>
-	 * All by the Plugin allocated resources should be freed in this method.
-	 * Examples are opened sockets or files.
-	 *
-	 * @see Monitor#setup(MonitorEnvironment)
-	 */	@Override
+	@Override
 	public void teardown(MonitorEnvironment env) throws Exception {
-		// TODO
+		// No tear down required due to rest queries closing above
 	}
+	
 	 
-	 
+	/*
+	 * Helper class to extract values out of the node list to then run mathematics on
+	 * @Param NodeList, int
+	 * @Return double
+	 */
+	private double xmlHelper(NodeList nl, int i){
+		log.finer("Entering xmlHelper method");
+		if(nl.item(i).getAttributes().getNamedItem("drawingorder") == null){
+			String tempString = nl.item(i).getAttributes().getNamedItem(this.aggergation).toString();
+			log.fine("String Line" + tempString);
+			tempString = tempString.replace(this.aggergation + "=", "");
+			tempString = tempString.replace("\"", "");
+			log.finer("Number Value extracted: " + tempString);
+			log.finer("Exiting xmlHelper method");
+			return Double.parseDouble(tempString);
+		}else{
+			log.finer("Exiting xmlHelper method");
+			return 0;
+		}	
+	}
+	
 	public static void disableCertificateValidation() {
 		
 		log.finer("Entering disableCertificateValidation method");  

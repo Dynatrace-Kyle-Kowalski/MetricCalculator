@@ -6,28 +6,28 @@
     <information>
       <category value="" />
       <displayname value="Metric Calculator" />
-      <description value="My Plugin description ..." />
+      <description value="Plugin to use a dynamic measure matrix to do mathmatical operations on based on measures top down." />
       <supportlevel value="unsupported" />
     </information>
     <configuration>
-      <property key="protocol" label="Protocol" type="list" description="My property description ..." default="HTTP">
+      <property key="protocol" label="Protocol" type="list" description="HTTP protocol to be used" default="HTTP">
         <list>
           <item value="HTTP" />
           <item value="HTTPS" />
         </list>
       </property>
-      <property key="httpPort" label="Port" type="long" description="My property description ..." default="8020" />
-      <property key="matrixURL" label="Matrix URL" type="string" description="My property description ..." default="" multiline="false" />
-      <property key="username" label="Username" type="string" description="My property description ..." default="default" multiline="false" />
-      <property key="password" label="Password" type="password" description="My property description ..." default="" />
-      <property key="operation" label="Operation" type="list" description="My property description ..." default="Add">
+      <property key="httpPort" label="Port" type="long" description="Port of the App Mon web interfaces defaults are 8020 and 8021 for default values" default="8020" />
+      <property key="matrixURL" label="Matrix URL" type="string" description="url to the Dynamic Measure Matrix saved dashboard" default="rest/management/reports/create/&lt;Dashboard Name Here&gt;?type=XML&amp;format=XML+Export" multiline="false" />
+      <property key="username" label="Username" type="string" description="User with at least read access" default="default" multiline="false" />
+      <property key="password" label="Password" type="password" description="Password for said user" default="" />
+      <property key="operation" label="Operation" type="list" description="Mathmatical operation to run. Noted this plugin evaluates data top down based on order of measures." default="Add">
         <list>
           <item value="Add" />
           <item value="Sub" />
           <item value="Mul" />
         </list>
       </property>
-      <property key="aggergation" label="Aggergation" type="list" description="My property description ..." default="avg">
+      <property key="aggergation" label="Aggergation" type="list" description="Which aggergation should be used for operation" default="avg">
         <list>
           <item value="avg" />
           <item value="min" />
@@ -43,9 +43,7 @@
   </extension>
   <extension point="com.dynatrace.diagnostics.pdk.monitormetricgroup" id="com.dynatrace.metric.calculator.monitor.results" name="Results">
     <metricgroup monitorid="com.dynatrace.metric.calculator.monitor">
-      <metric defaultrate="purepath" name="Calc Results" unit="number" description="My metric description ...">
-        <property key="calcResults" value="calcResults" optional="false" />
-      </metric>
+      <metric defaultrate="purepath" name="Calc Results" unit="number" description="Calculated Resuslts from test run" />
     </metricgroup>
   </extension>
 </plugin>
