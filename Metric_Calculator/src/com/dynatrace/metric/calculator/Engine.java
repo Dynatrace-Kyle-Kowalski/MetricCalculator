@@ -15,9 +15,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.MalformedURLException;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Logger;
+
 
 import javax.net.ssl.*;
 
@@ -43,10 +41,9 @@ public class Engine implements Monitor {
 
 	// measure constants
 	private static final String METRIC_GROUP = "Results";
-	private static final String CALC_RESULTS = "calcResults";
+	private static final String CALC_RESULTS = "number";
 
 	private Collection<MonitorMeasure>  measures  = null;
-	private MonitorMeasure dynamicMeasure;
 	
 	private double results;
 
@@ -69,19 +66,20 @@ public class Engine implements Monitor {
 		log.finer("Entering setup method");
 		log.finer("Entering variables from plugin.xml");
 		
-		urlprotocol = env.getConfigString("protocol");
-		urlport = env.getConfigLong("httpPort").intValue();
+		this.urlprotocol = env.getConfigString("protocol");
+		this.urlport = env.getConfigLong("httpPort").intValue();
 		
-		dynaTraceURL = env.getConfigString("agentURL");
-		dynaTraceURL = dynaTraceURL.replaceAll(" ", "%20");
-		if (!dynaTraceURL.startsWith("/"))
-			dynaTraceURL = "/" + dynaTraceURL;
+		this.dynaTraceURL = env.getConfigString("matrixURL");
+		this.dynaTraceURL = dynaTraceURL.replaceAll(" ", "%20");
 		
-		username = env.getConfigString("username");
-		password = env.getConfigPassword("password");
+		if (!this.dynaTraceURL.startsWith("/"))
+			this.dynaTraceURL = "/" + this.dynaTraceURL;
+		
+		this.username = env.getConfigString("username");
+		this.password = env.getConfigPassword("password");
 				
-		operation = env.getConfigString("operation");
-		aggergation = env.getConfigString("aggergation");
+		this.operation = env.getConfigString("operation");
+		this.aggergation = env.getConfigString("aggergation");
 		
 		log.finer("URL Protocol: " + this.urlprotocol);
 		log.finer("URL Port: " + this.urlport);
@@ -123,26 +121,26 @@ public class Engine implements Monitor {
 		log.finer("Entering execute method");
 		
 		log.finer("Entering URL Setup");
-		matrixURL = new URL(urlprotocol, env.getHost().getAddress(), urlport, dynaTraceURL);		
+		this.matrixURL = new URL(urlprotocol, env.getHost().getAddress(), urlport, dynaTraceURL);		
 		
-		log.info("Executing URL: " + matrixURL.toString());
-		log.finer("Executing URL: " + matrixURL.toString());
+		log.info("Executing URL: " + this.matrixURL.toString());
+		log.finer("Executing URL: " + this.matrixURL.toString());
 		
 		try {
 			
 			log.finer("Entering username/password setup");
-			String userpass = username + ":" + password;
+			String userpass = this.username + ":" + this.password;
 			String basicAuth = "Basic " + javax.xml.bind.DatatypeConverter.printBase64Binary(userpass.getBytes());
 		
 			disableCertificateValidation();
 				
 			//URL to grab XML file
 			log.finer("Entering XML file grab");
-			connection = matrixURL.openConnection();
-			connection.setRequestProperty("Authorization", basicAuth);
-			connection.setConnectTimeout(50000);
+			this.connection = this.matrixURL.openConnection();
+			this.connection.setRequestProperty("Authorization", basicAuth);
+			this.connection.setConnectTimeout(50000);
 
-			InputStream responseIS = connection.getInputStream();	
+			InputStream responseIS = this.connection.getInputStream();	
 			DocumentBuilderFactory xmlFactory = DocumentBuilderFactory.newInstance();
 			DocumentBuilder docBuilder = xmlFactory.newDocumentBuilder();
 			Document xmlDoc = docBuilder.parse(responseIS);
@@ -173,14 +171,12 @@ public class Engine implements Monitor {
 			switch(splitSwitch){
 				case 1: //Add
 					for (int i = 0; i < nl.getLength();i++){
-						//TODO Parse XML File to gather values from element
 						double tempValue = Double.parseDouble(nl.item(i).getAttributes().getNamedItem(aggergation).toString());
 						this.results = this.results + tempValue;
 					}
 					break;
 				case 2: //Sub
 					for (int i = 0; i < nl.getLength();i++){
-						//TODO Parse XML File to gather values from element
 						double tempValue = Double.parseDouble(nl.item(i).getAttributes().getNamedItem(aggergation).toString());
 						this.results = tempValue - this.results;
 					}
@@ -194,6 +190,11 @@ public class Engine implements Monitor {
 				default:
 					//There should always be a value this is in case things go poorly somehow
 					throw new Exception();
+			}
+			
+			if ((measures = env.getMonitorMeasures(METRIC_GROUP, CALC_RESULTS)) != null) {
+				for (MonitorMeasure measure : measures)
+					measure.setValue(this.results);
 			}
 
 		} catch (ClientProtocolException e) {

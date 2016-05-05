@@ -7,6 +7,7 @@
       <category value="" />
       <displayname value="Metric Calculator" />
       <description value="My Plugin description ..." />
+      <supportlevel value="unsupported" />
     </information>
     <configuration>
       <property key="protocol" label="Protocol" type="list" description="My property description ..." default="HTTP">
@@ -24,17 +25,15 @@
           <item value="Add" />
           <item value="Sub" />
           <item value="Mul" />
-          <item value="Div" />
-          <item value="Mod" />
         </list>
       </property>
-      <property key="aggergation" label="Aggergation" type="list" description="My property description ..." default="Avg">
+      <property key="aggergation" label="Aggergation" type="list" description="My property description ..." default="avg">
         <list>
-          <item value="Avg" />
-          <item value="Min" />
-          <item value="Max" />
-          <item value="Count" />
-          <item value="Sum" />
+          <item value="avg" />
+          <item value="min" />
+          <item value="max" />
+          <item value="count" />
+          <item value="sum" />
         </list>
       </property>
     </configuration>
