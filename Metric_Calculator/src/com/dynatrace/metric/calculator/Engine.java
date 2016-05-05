@@ -148,13 +148,13 @@ public class Engine implements Monitor {
 			XPath xpath = xpathFact.newXPath();
 			
 				
-			String xpathQuery = "/dashboardreport/data/dynamicmeasurematrixdashlet/measures/measure[@" + aggergation + "]";
+			String xpathQuery = "/dashboardreport/data/dynamicmeasurematrixdashlet/measures/measure";
 			NodeList nl = (NodeList) xpath.evaluate(xpathQuery,xmlDoc,XPathConstants.NODESET);
 			
-			//if nl is empty do not continue
+			/*/if nl is empty do not continue
 			if( nl != null && nl.getLength() >0){
 				throw new Exception();
-			}
+			}*/
 			
 			//Java 6 doesn't support a string in the switch statement
 			log.finer("Entering splitting switch statement");
@@ -171,20 +171,32 @@ public class Engine implements Monitor {
 			switch(splitSwitch){
 				case 1: //Add
 					for (int i = 0; i < nl.getLength();i++){
-						double tempValue = Double.parseDouble(nl.item(i).getAttributes().getNamedItem(aggergation).toString());
-						this.results = this.results + tempValue;
+						 String tempString = nl.item(i).getAttributes().getNamedItem(aggergation).toString();
+						 tempString = tempString.replace(aggergation + "=", "");
+						 tempString = tempString.replace("\"", "");
+						 log.finer("Number Value extracted: " + tempString);
+						 double tempValue = Double.parseDouble(tempString);
+						 this.results = this.results + tempValue;
 					}
 					break;
 				case 2: //Sub
 					for (int i = 0; i < nl.getLength();i++){
-						double tempValue = Double.parseDouble(nl.item(i).getAttributes().getNamedItem(aggergation).toString());
-						this.results = tempValue - this.results;
+						 String tempString = nl.item(i).getAttributes().getNamedItem(aggergation).toString();
+						 tempString = tempString.replace(aggergation + "=", "");
+						 tempString = tempString.replace("\"", "");
+						 log.finer("Number Value extracted: " + tempString);
+						 double tempValue = Double.parseDouble(tempString);
+						 this.results = tempValue - this.results;
 					}
 					break;
 				case 3: //Multi
 					for (int i = 0; i < nl.getLength();i++){
-						double tempValue = Double.parseDouble(nl.item(i).getAttributes().getNamedItem(aggergation).toString());
-						this.results = this.results * tempValue;
+						 String tempString = nl.item(i).getAttributes().getNamedItem(aggergation).toString();
+						 tempString = tempString.replace(aggergation + "=", "");
+						 tempString = tempString.replace("\"", "");
+						 log.finer("Number Value extracted: " + tempString);
+						 double tempValue = Double.parseDouble(tempString);
+						 this.results = this.results * tempValue;
 					}
 					break;
 				default:
