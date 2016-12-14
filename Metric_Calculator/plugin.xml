@@ -2,10 +2,10 @@
 <?eclipse version="3.2"?>
 <!-- plugin.xml file written by dynaTrace Client 6.3.2 -->
 <plugin>
-  <extension point="com.dynatrace.diagnostics.pdk.pluginconfig" id="com.dynatrace.metric.calculator" name="Metric Calculator">
+  <extension point="com.dynatrace.diagnostics.pdk.pluginconfig" id="com.dynatrace.metric.calculator.update" name="Metric Calculator - Update">
     <information>
       <category value="" />
-      <displayname value="Metric Calculator" />
+      <displayname value="Metric Calculator - Update" />
       <description value="Plugin to use a dynamic measure matrix to do mathmatical operations on based on measures top down." />
       <supportlevel value="unsupported" />
     </information>
@@ -38,11 +38,11 @@
       </property>
     </configuration>
   </extension>
-  <extension point="com.dynatrace.diagnostics.pdk.monitor" id="com.dynatrace.metric.calculator.monitor" name="Metric Calculator Monitor">
-    <plugin configid="com.dynatrace.metric.calculator" class="com.dynatrace.metric.calculator.Engine" />
+  <extension point="com.dynatrace.diagnostics.pdk.monitor" id="com.dynatrace.metric.calculator.update.monitor" name="Metric Calculator Monitor - Update">
+    <plugin configid="com.dynatrace.metric.calculator.update" class="com.dynatrace.metric.calculator.Engine" />
   </extension>
-  <extension point="com.dynatrace.diagnostics.pdk.monitormetricgroup" id="com.dynatrace.metric.calculator.monitor.results" name="Results">
-    <metricgroup monitorid="com.dynatrace.metric.calculator.monitor">
+  <extension point="com.dynatrace.diagnostics.pdk.monitormetricgroup" id="com.dynatrace.metric.calculator.update.metricgroup1" name="Results">
+    <metricgroup monitorid="com.dynatrace.metric.calculator.update.monitor">
       <metric defaultrate="purepath" name="Calc Results" unit="number" description="Calculated Resuslts from test run" />
     </metricgroup>
   </extension>
