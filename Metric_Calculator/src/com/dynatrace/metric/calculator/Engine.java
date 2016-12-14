@@ -116,13 +116,13 @@ public class Engine implements Monitor {
 	 */
 	@Override
 	public Status execute(MonitorEnvironment env) throws Exception {
-		
 		log.finer("Entering execute method");
+		this.results = 0.0;
 		
 		log.finer("Entering URL Setup");
 		this.matrixURL = new URL(urlprotocol, env.getHost().getAddress(), urlport, dynaTraceURL);		
 		
-		log.info("Executing URL: " + this.matrixURL.toString());
+		//log.info("Executing URL: " + this.matrixURL.toString());
 		log.finer("Executing URL: " + this.matrixURL.toString());
 		
 		try {
@@ -168,18 +168,21 @@ public class Engine implements Monitor {
 					//Loop through nodes to get all values then perform addition on values cumulatively
 					for (int i = 0; i < nl.getLength();i++){ 
 							this.results = this.results + xmlHelper(nl,i);
+							log.finer("Running Total: " + this.results);
 						}
 					break;
 				case 2: //Sub
 					//Loop through nodes to get all values then perform subtraction on values cumulatively
 					for (int i = 0; i < nl.getLength();i++){
 						this.results = xmlHelper(nl,i) - this.results;
+						log.finer("Running Total: " + this.results);
 					}
 					break;
 				case 3: //Multi
 					//Loop through nodes to get all values then perform multiplication on values cumulatively
 					for (int i = 0; i < nl.getLength();i++){
-						this.results = this.results + xmlHelper(nl,i);
+						this.results = this.results * xmlHelper(nl,i);
+						log.finer("Running Total: " + this.results);
 					}
 					break;
 				default:
@@ -187,6 +190,11 @@ public class Engine implements Monitor {
 					//properties exactly
 					throw new Exception();
 			}
+			
+			log.finer("Pre-Rounded Results: " + this.results);
+			//Take double value and restrict to 2 decimal points
+			this.results = Math.round(this.results * 100.0) / 100.0;
+			log.finer("Rounded Result: " + this.results);
 			
 			//Add value to be reported to metric group for plugin
 			if ((measures = env.getMonitorMeasures(METRIC_GROUP, CALC_RESULTS)) != null) {
@@ -229,7 +237,7 @@ public class Engine implements Monitor {
 		log.finer("Entering xmlHelper method");
 		if(nl.item(i).getAttributes().getNamedItem("drawingorder") == null){
 			String tempString = nl.item(i).getAttributes().getNamedItem(this.aggergation).toString();
-			log.fine("String Line" + tempString);
+			log.finer("String Line" + tempString);
 			tempString = tempString.replace(this.aggergation + "=", "");
 			tempString = tempString.replace("\"", "");
 			log.finer("Number Value extracted: " + tempString);
